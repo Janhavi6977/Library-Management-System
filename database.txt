@@ -1,0 +1,78 @@
+create database Librarymanagement;
+create table User(user_id int Auto_increment primary key, user_name varchar(50),user_address varchar(100), user_email varchar(50), user_phone bigint);
+
+create table LoginDetails(user_id int, role varchar(30),password varchar(30), Foreign key(user_id) references User(user_id));
+
+insert into User(user_name,user_address, user_email, user_phone) values('Janhavi','Noida','abc@gmail.com','8851047447');
+
+insert into LoginDetails values(1, 'admin','password');
+
+create table Book(book_id int Auto_increment primary key, book_name varchar(50), isbn varchar(50), year_published int,author varchar(30), publisher varchar(30), quantity int,available varchar(1));
+
+create table BookHistory(issue_date date,return_date date,book_id int,user_id int,approved varchar(1), Foreign key(user_id) references User(user_id),Foreign key(book_id) references Book(book_id));
+
+commit;
+
+
+
+
+def removeBook():
+    try:
+        book_id = input("Enter book id to be deleted : ")
+        sql = "select * from book where book_id="+book_id
+        Connection.mycursor.execute(sql)
+        res = Connection.mycursor.fetchall()
+        if(len(res)==0):
+            print("Sorry, this book does not exist in Library!")
+            return
+        sql="select u.user_id,u.user_name,u.user_email,u.user_phone,bh.book_id,"\    
+             "b.book_name,bh.issue_date,bh.return_date,bh.approved from bookhistory bh inner join " \
+             "on user u on bh.user_id=u.user_id left join book b on b.book_id=bh.book_id where bh.book_id="+book_id
+        Connection.mycursor.execute(sql)
+        res= Connection.mycursor.fetchall()
+        if (len(res)==0):
+            sql2="delete from book where book_id="+book_id
+            Connection.mycursor.execute(sql2)
+            if ( Connection.mycursor.rowcount>0):
+                print("Book has been successfully removed!")
+                displayAllBooks()
+        else:
+            for row in res:
+                if (row[8]=="y"):
+                    from datetime import date
+                    date=str(date.today())
+                    if (str(row[7])>=date):
+                        print("Sorry,this book is already issued to"+row[1]+"with return date"+str(row[7]))
+                        print("Below are the issued book details:-")
+                        print(tabulate (res,
+                                        headers=['User_id','User_name','user_email','user_phone','book_id'
+                                                 'book_name','book_issue_date','book_return_date','book_approved'],tablefmt='psql'))
+                        print(" ")
+                    else:
+                        print("below are the issued book details:-")
+                        print(tabulate(res,
+                                       headers=['User_id', 'User_name', 'user_email', 'user_phone', 'book_id'
+                                                'book_name', 'book_issue_date', 'book_approved'], tablefmt='psql'))
+
+                        print("This book was issued to" + row[1] + "but return date has expired")
+                        bookDeleteFromHistoryAndBook(book_id)
+                else:
+                    bookDeleteFromHistoryAndBook(book_id)
+            return
+    except Exception as e:
+        print(e)
+def bookDeleteFromHistoryAndBook(book_id):
+    print("")
+    sql3="delete from BookHistory where book_id="+book_id
+    Connection.mycursor.execute(sql3)
+    sql4="delete from book where book_id="+book_id
+    Connection.mycursor.execute(sql4)
+    Connection.mydb.commit()
+    print("Book has been removed successfully!")
+    displayAllBooks()
+
+
+
+INSERT INTO Book (book_name, isbn,year_published,author,publisher,quantity,available) VALUES ("New Simplified Physics","864-84-8645-98-9",1999,"S.L. Arora","Dhanpat Rai",4,"Y") 
+
+SELECT u.user_name,u.user_phone,u.user_email,u.user_address,bh.book_id ,b.book_name,bh.issue_date,bh.return_date,bh.approved, b.isbn, b.year_published,b.author,b.publisher,b.available from bookhistory bh inner join on book b on bh.book_id=b.book_id left join user u on u.user_id=bh.user_id where bh.approved='Y' and bh.user_id=2;
